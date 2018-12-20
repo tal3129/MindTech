@@ -1,0 +1,55 @@
+{
+  "project_info": {
+    "project_number": "123046061129",
+    "firebase_url": "https://mindtech-14502.firebaseio.com",
+    "project_id": "mindtech-14502",
+    "storage_bucket": "mindtech-14502.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:123046061129:android:d2568e22e26427c1",
+        "android_client_info": {
+          "package_name": "com.onlapplications.customalarmclock"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "123046061129-506fdbkmfhj89sjqedfd1e5phqd86ug9.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.onlapplications.customalarmclock",
+            "certificate_hash": "0c56091b8a5b4736def95a6fd5c980f8b63d4e80"
+          }
+        },
+        {
+          "client_id": "123046061129-jier9p645n2n2cs4i6dsue8u1iffckbn.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD9kleg9uf3xPANOS8Sczs2rRiLUl6RgZk"
+        }
+      ],
+      "services": {
+        "analytics_service": {
+          "status": 1
+        },
+        "appinvite_service": {
+          "status": 2,
+          "other_platform_oauth_client": [
+            {
+              "client_id": "123046061129-jier9p645n2n2cs4i6dsue8u1iffckbn.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        },
+        "ads_service": {
+          "status": 2
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
