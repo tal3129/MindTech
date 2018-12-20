@@ -5,10 +5,10 @@
     android:orientation="vertical">
 
     <LinearLayout
+        android:id="@+id/clickToChangeTimeLayout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:id="@+id/clickToChangeTimeLayout">
+        android:orientation="vertical">
 
         <TextView
             android:id="@+id/chosenTimeTv"
@@ -39,7 +39,7 @@
             android:id="@+id/edReps"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:hint="1"
+            android:text="1"
             android:inputType="number" />
 
         <TextView
@@ -51,15 +51,36 @@
 
     </LinearLayout>
 
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginTop="30dp"
+        android:orientation="horizontal">
+
+        <Spinner
+            android:id="@+id/spinnerAudioFile"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content">
+
+        </Spinner>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="קובץ אודיו "/>
+
+    </LinearLayout>
+
     <ToggleButton
         android:id="@+id/toggleButton"
-        android:textOn="דלוק"
-        android:textOff="כבוי"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="center"
         android:layout_marginTop="200dp"
         android:checked="false"
-        android:onClick="onToggleClicked" />
+        android:onClick="onToggleClicked"
+        android:textOff="כבוי"
+        android:textOn="דלוק" />
 
 </LinearLayout>

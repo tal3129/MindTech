@@ -14,7 +14,10 @@ import java.text.DecimalFormat
 import java.text.SimpleDateFormat
 import android.app.TimePickerDialog
 import android.support.v4.content.ContextCompat
-import android.util.Log
+import android.text.Editable
+import android.text.TextWatcher
+import android.widget.ArrayAdapter
+import com.google.firebase.FirebaseApp
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.FirebaseDatabase
@@ -38,11 +41,17 @@ class MainActivity : AppCompatActivity(), Observer {
     lateinit var selectedAudioObject: AudioObject
 
     // The audio data from the firebase
-    private var databaseData = DatabaseData()
+    private var data = DatabaseData()
+
+    private val maxReps: Int = 9
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+
+        // Initializations
+        FirebaseApp.initializeApp(this)
+
         ObservableObject.getInstance().addObserver(this)
         alarmManager = getSystemService(Context.ALARM_SERVICE) as AlarmManager
 
@@ -63,26 +72,47 @@ class MainActivity : AppCompatActivity(), Observer {
         // Load prev alarms from shared prefs
         loadCurrentAlarm()
 
+        // Set it so repetitions can't be bellow 1
+        edReps.addTextChangedListener(object : TextWatcher {
+            override fun afterTextChanged(s: Editable?) {
+            }
+
+            override fun beforeTextChanged(p0: CharSequence?, start: Int, count: Int, after: Int) {
+            }
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                var str: String = s?.toString() ?: "1"
+
+                if (str.isEmpty() || str.toInt() < 1)
+                    str = "1"
+                if (str.toInt() > maxReps)
+                    str = maxReps.toString()
+
+                edReps.setText(str)
+            }
+        })
+
         // currentAudioObject = audioObjectList[0]
-        selectedAudioObject = AudioObject("Hello there","", "android.resource://$packageName/raw/hello.mp3")
+        selectedAudioObject = AudioObject("Hello there", "", "android.resource://$packageName/raw/hello.mp3")
     }
 
     private fun downloadDatabaseData() {
         // First load the data from the device
-        databaseData = getDeviceData()
+        data = getDeviceData()
+        updateSpinner()
 
         // Then download the data from the firebase
         var tempDbData: DatabaseData
         val dataRef = FirebaseDatabase.getInstance().getReference("databaseData")
-        dataRef.addValueEventListener( object : ValueEventListener {
+        dataRef.addValueEventListener(object : ValueEventListener {
             override fun onDataChange(dataSnapshot: DataSnapshot) {
                 tempDbData = dataSnapshot.getValue(DatabaseData::class.java) ?: return
 
                 // Now the database data has been downloaded. check if our device data is up to date.
                 // if it isn't, download the audio files again
-                if (tempDbData.dataVersion > databaseData.dataVersion) {
-                    databaseData = tempDbData
-                    databaseData.downloadAudioFiles()
+                if (tempDbData.dataVersion > data.dataVersion) {
+                    data = tempDbData
+                    updateSpinner()
+                    data.downloadAudioFiles()
                 }
             }
 
@@ -91,7 +121,15 @@ class MainActivity : AppCompatActivity(), Observer {
         })
     }
 
-    // Returns the databaseData loaded from the sharedPrefs
+    // updates the spinner, from data
+    private fun updateSpinner() {
+        spinnerAudioFile.adapter = ArrayAdapter<String>(
+                this,
+                android.R.layout.simple_spinner_dropdown_item,
+                data.audioObjects.map { it.name })
+    }
+
+    // Returns the data loaded from the sharedPrefs
     private fun getDeviceData(): DatabaseData {
         val strDeviceData: String = getSharedPreferences(spName, MODE_PRIVATE).getString("databaseData", "")
         return if (strDeviceData != "")
@@ -102,10 +140,11 @@ class MainActivity : AppCompatActivity(), Observer {
 
     // Loads the current alarm from the shared prefs
     private fun loadCurrentAlarm() {
-        currentAlarm = Gson().fromJson(getSharedPreferences(spName, MODE_PRIVATE).getString("currentAlarm", ""), AlarmObject::class.java)
+        val jsonAlarm = getSharedPreferences(spName, MODE_PRIVATE).getString("currentAlarm", "")
+        currentAlarm = Gson().fromJson(jsonAlarm, AlarmObject::class.java) ?: return
         if (currentAlarm.timeInMillis != (-1).toLong()) {
             setAlarmTimeTv(currentAlarm.timeInMillis)
-            toggleAlarm(true,  false)
+            toggleAlarm(true, false)
         }
     }
 
@@ -185,7 +224,7 @@ class MainActivity : AppCompatActivity(), Observer {
         if (tomorrow)
             alarmTime.timeInMillis += 24 * 60 * 60 * 1000
 
-        alarmManager.setRepeating(AlarmManager.RTC_WAKEUP, alarmTime.timeInMillis,  8000, pendingIntent)
+        alarmManager.setRepeating(AlarmManager.RTC_WAKEUP, alarmTime.timeInMillis, 8000, pendingIntent)
         if (showToast)
             Toast.makeText(this, "התראה חדשה ל" + (if (tomorrow) "מחר בשעה  " else "שעה ") + chosenTimeTv.text, Toast.LENGTH_LONG).show()
 
