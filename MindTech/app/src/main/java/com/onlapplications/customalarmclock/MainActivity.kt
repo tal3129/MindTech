@@ -14,6 +14,12 @@ import java.text.DecimalFormat
 import java.text.SimpleDateFormat
 import android.app.TimePickerDialog
 import android.support.v4.content.ContextCompat
+import android.util.Log
+import com.google.firebase.database.DataSnapshot
+import com.google.firebase.database.DatabaseError
+import com.google.firebase.database.FirebaseDatabase
+import com.google.firebase.database.ValueEventListener
+import com.google.gson.Gson
 import java.util.*
 
 
@@ -25,9 +31,14 @@ class MainActivity : AppCompatActivity(), Observer {
     private lateinit var pendingIntent: PendingIntent
     private lateinit var alarmManager: AlarmManager
 
-    // the current alarm time in milliseconds. -1 if none is active.
-    private var currentAlarmTimeInMillis: Long = -1
+    // the current alarm time in milliseconds. -1 if it is not active. Try to keep this object saved in the sp, as it is used from there when an alarm is made
+    private var currentAlarm: AlarmObject = AlarmObject()
     private var alarmActive: Boolean = false
+
+    lateinit var selectedAudioObject: AudioObject
+
+    // The audio data from the firebase
+    private var databaseData = DatabaseData()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -36,8 +47,12 @@ class MainActivity : AppCompatActivity(), Observer {
         alarmManager = getSystemService(Context.ALARM_SERVICE) as AlarmManager
 
         val intent = Intent(this, AlarmReceiver::class.java)
-        pendingIntent = PendingIntent.getBroadcast(this, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT)
+        pendingIntent = PendingIntent.getBroadcast(this, 0, intent, PendingIntent.FLAG_CANCEL_CURRENT)
 
+        // Downloading the audio data from the firebase
+        downloadDatabaseData()
+
+        // Setting the alarm time tv text to the current time
         setAlarmTimeTv(System.currentTimeMillis())
 
         // Setting the onClickListener to opening the timePickerDialog
@@ -45,14 +60,51 @@ class MainActivity : AppCompatActivity(), Observer {
             startTimePickerDialog()
         }
 
+        // Load prev alarms from shared prefs
         loadCurrentAlarm()
+
+        // currentAudioObject = audioObjectList[0]
+        selectedAudioObject = AudioObject("Hello there","", "android.resource://$packageName/raw/hello.mp3")
+    }
+
+    private fun downloadDatabaseData() {
+        // First load the data from the device
+        databaseData = getDeviceData()
+
+        // Then download the data from the firebase
+        var tempDbData: DatabaseData
+        val dataRef = FirebaseDatabase.getInstance().getReference("databaseData")
+        dataRef.addValueEventListener( object : ValueEventListener {
+            override fun onDataChange(dataSnapshot: DataSnapshot) {
+                tempDbData = dataSnapshot.getValue(DatabaseData::class.java) ?: return
+
+                // Now the database data has been downloaded. check if our device data is up to date.
+                // if it isn't, download the audio files again
+                if (tempDbData.dataVersion > databaseData.dataVersion) {
+                    databaseData = tempDbData
+                    databaseData.downloadAudioFiles()
+                }
+            }
+
+            override fun onCancelled(databaseError: DatabaseError) {
+            }
+        })
+    }
+
+    // Returns the databaseData loaded from the sharedPrefs
+    private fun getDeviceData(): DatabaseData {
+        val strDeviceData: String = getSharedPreferences(spName, MODE_PRIVATE).getString("databaseData", "")
+        return if (strDeviceData != "")
+            Gson().fromJson(strDeviceData, DatabaseData::class.java)
+        else
+            DatabaseData()
     }
 
     // Loads the current alarm from the shared prefs
     private fun loadCurrentAlarm() {
-        currentAlarmTimeInMillis = getSharedPreferences(spName, MODE_PRIVATE).getLong("alarmTimeInMillis", -1)
-        if (currentAlarmTimeInMillis != (-1).toLong()) {
-            setAlarmTimeTv(currentAlarmTimeInMillis)
+        currentAlarm = Gson().fromJson(getSharedPreferences(spName, MODE_PRIVATE).getString("currentAlarm", ""), AlarmObject::class.java)
+        if (currentAlarm.timeInMillis != (-1).toLong()) {
+            setAlarmTimeTv(currentAlarm.timeInMillis)
             toggleAlarm(true,  false)
         }
     }
@@ -109,7 +161,7 @@ class MainActivity : AppCompatActivity(), Observer {
             chosenTimeTv.setTextColor(ContextCompat.getColor(this, R.color.defaultTextColor))
 
             // Reset the alarm time holder
-            currentAlarmTimeInMillis = -1
+            currentAlarm.timeInMillis = -1
 
             // Show the toast
             if (showToast)
@@ -133,21 +185,23 @@ class MainActivity : AppCompatActivity(), Observer {
         if (tomorrow)
             alarmTime.timeInMillis += 24 * 60 * 60 * 1000
 
-        val ringtoneLength = 1000.toLong()
-        alarmManager.setRepeating(AlarmManager.RTC_WAKEUP, alarmTime.timeInMillis, ringtoneLength + 2000, pendingIntent)
+        alarmManager.setRepeating(AlarmManager.RTC_WAKEUP, alarmTime.timeInMillis,  8000, pendingIntent)
         if (showToast)
             Toast.makeText(this, "התראה חדשה ל" + (if (tomorrow) "מחר בשעה  " else "שעה ") + chosenTimeTv.text, Toast.LENGTH_LONG).show()
 
 
-        currentAlarmTimeInMillis = alarmTime.timeInMillis
+        currentAlarm.timeInMillis = alarmTime.timeInMillis
+        saveCurrentAlarmData()
     }
 
 
-    override fun onStop() {
+    // Saves the current AlarmObject to the device
+    private fun saveCurrentAlarmData() {
         val editor = getSharedPreferences(spName, MODE_PRIVATE).edit()
-        editor.putLong("alarmTimeInMillis", currentAlarmTimeInMillis)
+        currentAlarm.repetitions = edReps.text.toString().toInt()
+        currentAlarm.audioObject = selectedAudioObject
+        editor.putString("currentAlarm", currentAlarm.toJson())
         editor.apply()
-        super.onStop()
     }
 
     // Called by the observer when the

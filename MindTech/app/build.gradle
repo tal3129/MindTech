@@ -32,6 +32,9 @@ dependencies {
     implementation 'com.google.firebase:firebase-storage:16.0.5'
     implementation 'com.google.firebase:firebase-database:16.0.5'
 
+    // gson for saving in the sp
+    implementation 'com.google.code.gson:gson:2.8.5'
+
     testImplementation 'junit:junit:4.12'
     androidTestImplementation 'com.android.support.test:runner:1.0.2'
     androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.2'

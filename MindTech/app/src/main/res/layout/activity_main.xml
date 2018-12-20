@@ -25,7 +25,7 @@
             android:layout_height="wrap_content"
             android:layout_gravity="center_horizontal"
             android:layout_marginTop="10dp"
-            android:text="לחץ כדי לשנות שעה" />
+            android:text="@string/tv_clickToChange_alarmOff" />
     </LinearLayout>
 
     <LinearLayout
@@ -36,9 +36,11 @@
         android:orientation="horizontal">
 
         <EditText
+            android:id="@+id/edReps"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:hint="..." />
+            android:hint="1"
+            android:inputType="number" />
 
         <TextView
             android:layout_width="wrap_content"
