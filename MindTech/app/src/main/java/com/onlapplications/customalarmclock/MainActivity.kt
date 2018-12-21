@@ -72,24 +72,6 @@ class MainActivity : AppCompatActivity(), Observer {
         // Load prev alarms from shared prefs
         loadCurrentAlarm()
 
-        // Set it so repetitions can't be bellow 1
-        edReps.addTextChangedListener(object : TextWatcher {
-            override fun afterTextChanged(s: Editable?) {
-            }
-
-            override fun beforeTextChanged(p0: CharSequence?, start: Int, count: Int, after: Int) {
-            }
-            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
-                var str: String = s?.toString() ?: "1"
-
-                if (str.isEmpty() || str.toInt() < 1)
-                    str = "1"
-                if (str.toInt() > maxReps)
-                    str = maxReps.toString()
-
-                edReps.setText(str)
-            }
-        })
 
         // currentAudioObject = audioObjectList[0]
         selectedAudioObject = AudioObject("Hello there", "", "android.resource://$packageName/raw/hello.mp3")
@@ -131,7 +113,8 @@ class MainActivity : AppCompatActivity(), Observer {
 
     // Returns the data loaded from the sharedPrefs
     private fun getDeviceData(): DatabaseData {
-        val strDeviceData: String = getSharedPreferences(spName, MODE_PRIVATE).getString("databaseData", "")
+        val sp = getSharedPreferences(spName, MODE_PRIVATE)
+        val strDeviceData: String = sp.getString("databaseData", "")
         return if (strDeviceData != "")
             Gson().fromJson(strDeviceData, DatabaseData::class.java)
         else
@@ -237,13 +220,27 @@ class MainActivity : AppCompatActivity(), Observer {
     // Saves the current AlarmObject to the device
     private fun saveCurrentAlarmData() {
         val editor = getSharedPreferences(spName, MODE_PRIVATE).edit()
-        currentAlarm.repetitions = edReps.text.toString().toInt()
+        val reps = edReps.text.toString()
+        currentAlarm.repetitions = (if (reps.isEmpty()) "1" else reps).toInt()
         currentAlarm.audioObject = selectedAudioObject
         editor.putString("currentAlarm", currentAlarm.toJson())
         editor.apply()
     }
 
-    // Called by the observer when the
+    // We want to save the data when the app is stopped
+    override fun onStop() {
+        saveCurrentData()
+        super.onStop()
+    }
+
+    // Saves the current data to the device
+    private fun saveCurrentData() {
+        val editor = getSharedPreferences(spName, MODE_PRIVATE).edit()
+        editor.putString("databaseData", data.toJson())
+        editor.apply()
+    }
+
+    // Called by the observer when the alarm is received
     override fun update(p0: Observable?, p1: Any?) {
         toggleAlarm(false, false)
     }
