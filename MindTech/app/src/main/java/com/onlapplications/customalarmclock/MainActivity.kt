@@ -130,7 +130,7 @@ class MainActivity : AppCompatActivity(), Observer {
                     spinnerAudioFile.setSelection(i)
 
             // sets the repetitions to the alarm's repetitions
-            edReps.setText(currentAlarm.repetitions)
+            edReps.setText(currentAlarm.repetitions.toString())
 
             // set the rest of the layout to the active alarm's one
             toggleButton.isChecked = true
