@@ -4,14 +4,13 @@ package com.onlapplications.customalarmclock
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import android.media.RingtoneManager
-import android.net.Uri
 import android.support.v7.app.AppCompatActivity
 import android.widget.Toast
 import com.google.gson.Gson
 import android.app.PendingIntent
 import android.app.AlarmManager
-
+import android.media.MediaPlayer
+import org.jetbrains.anko.doAsync
 
 
 class AlarmReceiver : BroadcastReceiver() {
@@ -23,16 +22,17 @@ class AlarmReceiver : BroadcastReceiver() {
         val alarmData: AlarmObject = Gson().fromJson(sp.getString("currentAlarm", ""), AlarmObject::class.java)
 
 
-        // plays the sound
-        playAlarmSound(context, alarmData)
+        // plays the sound for the amount of repetitions
+        val audioLen = alarmData.audioObject.getDurationInMillis()
+        val interval = 1000
 
-
-        // decrement the repetitions
-        alarmData.repetitions --
-
-
-        //reset the alarm
-        if(alarmData.repetitions == 0) {
+        doAsync {
+            if (audioLen > 0) {
+                for (i in 1..alarmData.repetitions) {
+                    playAlarmSound(alarmData)
+                    Thread.sleep(audioLen + interval)
+                }
+            }
             alarmData.timeInMillis = -1
 
             val amg = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
@@ -40,21 +40,24 @@ class AlarmReceiver : BroadcastReceiver() {
             amg.cancel(pendingIntent)
 
             ObservableObject.getInstance().updateValue(intent)
-        }
 
-        // save the changes
-        val editor = sp.edit()
-        editor.putString("currentAlarm", alarmData.toJson())
-        editor.apply()
+            // save the changes
+            val editor = sp.edit()
+            editor.putString("currentAlarm", alarmData.toJson())
+            editor.apply()
+        }
     }
 
     // plays the sound
-    private fun playAlarmSound(context: Context, alarmData: AlarmObject) {
-        val audioPath = alarmData.audioObject?.pathInPhone
-        if (audioPath != null) {
-            val alarmUri: Uri? = Uri.parse(audioPath)
-            val ringtone = RingtoneManager.getRingtone(context, alarmUri)
-            ringtone.play()
+    private fun playAlarmSound(alarmData: AlarmObject) {
+        val audioPath = alarmData.audioObject.pathInPhone
+        val mp = MediaPlayer()
+        try {
+            mp.setDataSource(audioPath)
+            mp.prepare()
+            mp.start()
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
     }
 }

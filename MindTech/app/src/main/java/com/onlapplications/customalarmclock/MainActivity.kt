@@ -17,6 +17,7 @@ import android.support.v4.content.ContextCompat
 import android.text.Editable
 import android.text.TextWatcher
 import android.widget.ArrayAdapter
+import android.widget.Spinner
 import com.google.firebase.FirebaseApp
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
@@ -38,12 +39,9 @@ class MainActivity : AppCompatActivity(), Observer {
     private var currentAlarm: AlarmObject = AlarmObject()
     private var alarmActive: Boolean = false
 
-    lateinit var selectedAudioObject: AudioObject
-
     // The audio data from the firebase
     private var data = DatabaseData()
 
-    private val maxReps: Int = 9
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -71,10 +69,6 @@ class MainActivity : AppCompatActivity(), Observer {
 
         // Load prev alarms from shared prefs
         loadCurrentAlarm()
-
-
-        // currentAudioObject = audioObjectList[0]
-        selectedAudioObject = AudioObject("Hello there", "", "android.resource://$packageName/raw/hello.mp3")
     }
 
     private fun downloadDatabaseData() {
@@ -126,8 +120,22 @@ class MainActivity : AppCompatActivity(), Observer {
         val jsonAlarm = getSharedPreferences(spName, MODE_PRIVATE).getString("currentAlarm", "")
         currentAlarm = Gson().fromJson(jsonAlarm, AlarmObject::class.java) ?: return
         if (currentAlarm.timeInMillis != (-1).toLong()) {
+
+            // sets the time to the alarm time
             setAlarmTimeTv(currentAlarm.timeInMillis)
-            toggleAlarm(true, false)
+
+            // set the spinner to the alarm chosen item if exists
+            for (i in 0 until spinnerAudioFile.adapter.count)
+                if (spinnerAudioFile.getItemAtPosition(i).toString() == currentAlarm.audioObject.name)
+                    spinnerAudioFile.setSelection(i)
+
+            // sets the repetitions to the alarm's repetitions
+            edReps.setText(currentAlarm.repetitions)
+
+            // set the rest of the layout to the active alarm's one
+            toggleButton.isChecked = true
+            chosenTimeTv.setTextColor(ContextCompat.getColor(this, R.color.alarmOnTextColor))
+            tvClickDescription.setText(R.string.tv_clickToChange_alarmOn)
         }
     }
 
@@ -174,6 +182,7 @@ class MainActivity : AppCompatActivity(), Observer {
             setAlarmOn(showToast)
             toggleButton.isChecked = true
             chosenTimeTv.setTextColor(ContextCompat.getColor(this, R.color.alarmOnTextColor))
+            tvClickDescription.setText(R.string.tv_clickToChange_alarmOn)
         } else {
             alarmActive = false
 
@@ -181,6 +190,7 @@ class MainActivity : AppCompatActivity(), Observer {
             toggleButton.isChecked = false
 
             chosenTimeTv.setTextColor(ContextCompat.getColor(this, R.color.defaultTextColor))
+            tvClickDescription.setText(R.string.tv_clickToChange_alarmOff)
 
             // Reset the alarm time holder
             currentAlarm.timeInMillis = -1
@@ -207,7 +217,7 @@ class MainActivity : AppCompatActivity(), Observer {
         if (tomorrow)
             alarmTime.timeInMillis += 24 * 60 * 60 * 1000
 
-        alarmManager.setRepeating(AlarmManager.RTC_WAKEUP, alarmTime.timeInMillis, 8000, pendingIntent)
+        alarmManager.set(AlarmManager.RTC_WAKEUP, alarmTime.timeInMillis, pendingIntent)
         if (showToast)
             Toast.makeText(this, "התראה חדשה ל" + (if (tomorrow) "מחר בשעה  " else "שעה ") + chosenTimeTv.text, Toast.LENGTH_LONG).show()
 
@@ -222,7 +232,7 @@ class MainActivity : AppCompatActivity(), Observer {
         val editor = getSharedPreferences(spName, MODE_PRIVATE).edit()
         val reps = edReps.text.toString()
         currentAlarm.repetitions = (if (reps.isEmpty()) "1" else reps).toInt()
-        currentAlarm.audioObject = selectedAudioObject
+        currentAlarm.audioObject = data.audioObjects[spinnerAudioFile.selectedItemPosition]
         editor.putString("currentAlarm", currentAlarm.toJson())
         editor.apply()
     }
