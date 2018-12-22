@@ -42,6 +42,8 @@ class MainActivity : AppCompatActivity(), Observer {
     // The audio data from the firebase
     private var data = DatabaseData()
 
+    private var progressed = 0
+    private var maxProgress = 0
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -253,5 +255,24 @@ class MainActivity : AppCompatActivity(), Observer {
     // Called by the observer when the alarm is received
     override fun update(p0: Observable?, p1: Any?) {
         toggleAlarm(false, false)
+    }
+
+    // starts the download progress
+    private fun startProgress() {
+        //TODO("implement progress bar in the future")
+        maxProgress = data.audioObjects.size
+    }
+
+    // called whenever an audio object was downloaded
+    private fun onItemDownloaded() {
+        //TODO("implement progress bar in the future")
+        progressed++
+        if (progressed == maxProgress)
+            finishProgress()
+    }
+
+    // called after all audio objects were downloaded
+    private fun finishProgress() {
+        //TODO("implement progress bar in the future")
     }
 }
