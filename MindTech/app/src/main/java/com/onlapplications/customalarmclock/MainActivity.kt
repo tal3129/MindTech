@@ -87,7 +87,7 @@ class MainActivity : AppCompatActivity(), Observer {
                 if (tempDbData.dataVersion > data.dataVersion) {
                     data = tempDbData
                     updateSpinner()
-                    data.downloadAudioFiles()
+                    data.downloadAudioFiles(::onItemDownloaded)
                 }
             }
 

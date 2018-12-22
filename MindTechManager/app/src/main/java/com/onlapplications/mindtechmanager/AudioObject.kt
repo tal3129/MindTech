@@ -5,15 +5,15 @@ import com.google.firebase.storage.FirebaseStorage
 import java.io.File
 
 // The audio object that is saved in the database.  References  to an object in the FirebaseStorage.
-class AudioObject (var name:String = "", var storageId: String = "", var pathInPhone: String = "") {
+class AudioObject (var firebaseId: String = "", var name:String = "", var pathInPhone: String = "") {
 
     // downloads the file
     fun downloadFile(onItemDownload: () -> Unit) {
         val storageRef = FirebaseStorage.getInstance().getReference("audioFiles")
 
-        val localFile = File.createTempFile(storageId, "mp3")
+        val localFile = File.createTempFile(firebaseId, "mp3")
 
-        storageRef.child("$storageId.mp3").getFile(localFile).addOnSuccessListener {
+        storageRef.child("$firebaseId.mp3").getFile(localFile).addOnSuccessListener {
             // If the download managed to start
             pathInPhone = localFile.path
 
@@ -26,7 +26,7 @@ class AudioObject (var name:String = "", var storageId: String = "", var pathInP
 
 
     // Receives a uri, returns the length of the object in it
-    fun getDurationInMillis() :Long {
+    fun clacDurationInMillis() :Long {
         return try {
             val mmr = MediaMetadataRetriever()
             mmr.setDataSource(this.pathInPhone)
