@@ -49,12 +49,9 @@ class MainActivity : AppCompatActivity(), Observer {
 
         // Initializations
         FirebaseApp.initializeApp(this)
-
         ObservableObject.getInstance().addObserver(this)
         alarmManager = getSystemService(Context.ALARM_SERVICE) as AlarmManager
 
-        val intent = Intent(this, AlarmReceiver::class.java)
-        pendingIntent = PendingIntent.getBroadcast(this, 0, intent, PendingIntent.FLAG_CANCEL_CURRENT)
 
         // Downloading the audio data from the firebase
         downloadDatabaseData()
@@ -186,7 +183,8 @@ class MainActivity : AppCompatActivity(), Observer {
         } else {
             alarmActive = false
 
-            alarmManager.cancel(pendingIntent)
+            if (this::pendingIntent.isInitialized)
+                alarmManager.cancel(pendingIntent)
             toggleButton.isChecked = false
 
             chosenTimeTv.setTextColor(ContextCompat.getColor(this, R.color.defaultTextColor))
@@ -217,6 +215,8 @@ class MainActivity : AppCompatActivity(), Observer {
         if (tomorrow)
             alarmTime.timeInMillis += 24 * 60 * 60 * 1000
 
+        val intent = Intent(this, AlarmReceiver::class.java)
+        pendingIntent = PendingIntent.getBroadcast(this, 0, intent, PendingIntent.FLAG_CANCEL_CURRENT)
         alarmManager.set(AlarmManager.RTC_WAKEUP, alarmTime.timeInMillis, pendingIntent)
         if (showToast)
             Toast.makeText(this, "התראה חדשה ל" + (if (tomorrow) "מחר בשעה  " else "שעה ") + chosenTimeTv.text, Toast.LENGTH_LONG).show()
