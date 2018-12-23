@@ -21,44 +21,33 @@
 
 
     <RelativeLayout
-        android:id="@+id/rl1"
+        android:id="@+id/clickToChangeTimeLayout"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:background="@color/secondary"
         app:layout_constraintBottom_toBottomOf="@id/guideline"
         app:layout_constraintTop_toTopOf="parent">
 
-        <ImageView
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:src="@drawable/clock_background"
 
-            android:layout_marginTop="10dp"
+        <TextView
+            android:id="@+id/chosenTimeTv"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerInParent="true"
+            android:text="21:50"
+            android:textColor="@color/alarmOnTextColor"
+            android:textSize="72sp" />
+
+        <TextView
+            android:id="@+id/tvClickDescription"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentBottom="true"
+            android:layout_centerHorizontal="true"
+
             android:layout_marginBottom="10dp"
-            />
-
-
-        <ImageView
-            android:id="@+id/minuteHand"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:src="@drawable/minute"
-
-            android:layout_marginTop="10dp"
-            android:layout_marginBottom="10dp"
-            />
-
-        <ImageView
-            android:id="@+id/hourHand"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:src="@drawable/hour"
-
-            android:layout_marginTop="10dp"
-            android:layout_marginBottom="10dp"
-            />
-
-
+            android:text="@string/tv_clickToChange_alarmOn"
+            android:textColor="@color/alarmOnTextColor" />
     </RelativeLayout>
 
     <RelativeLayout
@@ -67,16 +56,8 @@
         android:layout_height="0dp"
         android:background="@drawable/triangular"
         app:layout_constraintBottom_toBottomOf="@id/guideline2"
-        app:layout_constraintTop_toBottomOf="@id/rl1">
+        app:layout_constraintTop_toBottomOf="@id/clickToChangeTimeLayout">
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_centerHorizontal="true"
-            android:layout_centerVertical="true"
-            android:text="07:50"
-            android:textColor="#2196f3"
-            android:textSize="30sp" />
 
     </RelativeLayout>
 
@@ -84,7 +65,6 @@
         android:id="@+id/repeatLayout"
         android:layout_width="0dp"
         android:layout_height="0dp"
-
         android:layout_marginTop="8dp"
         android:background="@drawable/circular_background"
         app:layout_constraintBottom_toBottomOf="@id/guideline5"
@@ -105,48 +85,40 @@
             android:layout_width="0dp"
             android:layout_height="match_parent"
 
-            app:layout_constraintRight_toRightOf="@id/guideline6"
-            app:layout_constraintLeft_toLeftOf="parent"
-
-            android:layout_marginLeft="2dp"
-            android:layout_marginTop="2dp"
             android:layout_marginBottom="2dp"
+            android:layout_marginLeft="2dp"
+
+            android:layout_marginTop="2dp"
             android:src="@drawable/ic_cached_black_24dp"
+            app:layout_constraintLeft_toLeftOf="parent"
+            app:layout_constraintRight_toRightOf="@id/guideline6" />
 
-            />
-
-        <TextView
+        <EditText
+            android:id="@+id/edReps"
             android:layout_width="0dp"
             android:layout_height="match_parent"
-
-            app:layout_constraintLeft_toRightOf="@id/iv"
-            app:layout_constraintRight_toRightOf="parent"
-
-            android:layout_margin="3dp"
-
-            android:text="5"
-            android:textColor="#fff"
-            android:textSize="25sp"
             android:gravity="center"
-            />
-
+            android:inputType="number"
+            android:text="1"
+            android:layout_marginEnd="8dp"
+            android:layout_marginStart="8dp"
+            android:paddingBottom="8dp"
+            android:textColor="#fff"
+            android:textSize="21sp"
+            app:layout_constraintLeft_toRightOf="@id/iv"
+            app:layout_constraintRight_toRightOf="parent" />
 
 
     </android.support.constraint.ConstraintLayout>
 
 
     <ListView
+        android:id="@+id/listViewAudioFile"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        app:layout_constraintTop_toBottomOf="@id/repeatLayout"
-        app:layout_constraintBottom_toBottomOf="parent"
         android:layout_marginTop="5dp"
-
-
-        >
-
-
-    </ListView>
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/repeatLayout" />
 
     <android.support.constraint.Guideline
         android:id="@+id/guideline3"
@@ -169,7 +141,20 @@
         android:orientation="horizontal"
         app:layout_constraintGuide_percent="0.59" />
 
-
+    <android.support.design.widget.FloatingActionButton
+        android:id="@+id/toggleButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="16dp"
+        android:layout_marginEnd="8dp"
+        android:layout_marginStart="8dp"
+        app:backgroundTint="@android:color/holo_red_light"
+        android:tag="1"
+        app:fabSize="normal"
+        android:onClick="onToggleClicked"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
 
 
 </android.support.constraint.ConstraintLayout>

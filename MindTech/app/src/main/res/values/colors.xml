@@ -8,4 +8,6 @@
 
     <color name="alarmOnTextColor">#2196f3</color>
     <color name="defaultTextColor">#808080</color>
+
+    <color name="selectedBgColor">#cea7ffeb</color>
 </resources>

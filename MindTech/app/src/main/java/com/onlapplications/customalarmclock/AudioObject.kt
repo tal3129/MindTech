@@ -13,7 +13,7 @@ class AudioObject (var firebaseId: String = "", var name:String = "", var pathIn
 
         val localFile = File.createTempFile(firebaseId, "mp3")
 
-        storageRef.child("$firebaseId.mp3").getFile(localFile).addOnSuccessListener {
+        storageRef.child(firebaseId).getFile(localFile).addOnSuccessListener {
             // If the download managed to start
             pathInPhone = localFile.path
 

@@ -1,6 +1,7 @@
 package com.onlapplications.mindtechmanager
 
 import android.media.MediaMetadataRetriever
+import android.util.Log
 import com.google.firebase.storage.FirebaseStorage
 import java.io.File
 
@@ -13,12 +14,16 @@ class AudioObject (var firebaseId: String = "", var name:String = "", var pathIn
 
         val localFile = File.createTempFile(firebaseId, "mp3")
 
-        storageRef.child("$firebaseId.mp3").getFile(localFile).addOnSuccessListener {
+        storageRef.child(firebaseId).getFile(localFile).addOnSuccessListener {
             // If the download managed to start
             pathInPhone = localFile.path
 
         }.addOnFailureListener {
             it.printStackTrace()
+            Log.d("TAG", this.firebaseId)
+            Log.d("TAG", this.firebaseId)
+            Log.d("TAG", storageRef.child(firebaseId).toString())
+
         }.addOnCompleteListener({
             onItemDownload()
         })

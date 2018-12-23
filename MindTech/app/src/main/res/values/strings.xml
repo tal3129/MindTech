@@ -3,4 +3,5 @@
     <string name="tv_clickToChange_alarmOff">לחץ כדי לבחור שעה עבור ההתראה</string>
     <string name="tv_clickToChange_alarmOn">לחץ כדי לשנות את שעת ההתראה</string>
     <string name="alarm_received">Alarm! Wake up! Wake up!</string>
+    <string name="title_activity_main2">Main2Activity</string>
 </resources>

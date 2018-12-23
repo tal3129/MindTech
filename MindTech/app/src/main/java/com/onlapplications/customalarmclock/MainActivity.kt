@@ -7,24 +7,28 @@ import android.content.Intent
 import android.os.Bundle
 import android.support.v7.app.AppCompatActivity
 import android.view.View
-import android.widget.Toast
-import android.widget.ToggleButton
-import kotlinx.android.synthetic.main.activity_main.*
 import java.text.DecimalFormat
 import java.text.SimpleDateFormat
 import android.app.TimePickerDialog
+import android.content.res.ColorStateList
+import android.support.design.widget.FloatingActionButton
 import android.support.v4.content.ContextCompat
-import android.text.Editable
-import android.text.TextWatcher
-import android.widget.ArrayAdapter
-import android.widget.Spinner
+import android.util.TypedValue
+import android.view.ViewGroup
+import android.widget.*
 import com.google.firebase.FirebaseApp
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ValueEventListener
 import com.google.gson.Gson
+import kotlinx.android.synthetic.main.new_main.*
+import kotlinx.coroutines.selects.select
+import org.jetbrains.anko.doAsync
+import org.jetbrains.anko.toast
+import org.jetbrains.anko.uiThread
 import java.util.*
+import kotlin.jvm.java
 
 
 class MainActivity : AppCompatActivity(), Observer {
@@ -45,13 +49,12 @@ class MainActivity : AppCompatActivity(), Observer {
     private var progressed = 0
     private var maxProgress = 0
 
+    private var selectedItemPosition: Int = -1
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.new_main)
 
-
-
-        /*
         // Initializations
         FirebaseApp.initializeApp(this)
         ObservableObject.getInstance().addObserver(this)
@@ -69,10 +72,10 @@ class MainActivity : AppCompatActivity(), Observer {
             startTimePickerDialog()
         }
 
+        setLayoutToAlarmMode(false)
+
         // Load prev alarms from shared prefs
         loadCurrentAlarm()
-
-        */
     }
 
     private fun downloadDatabaseData() {
@@ -81,17 +84,26 @@ class MainActivity : AppCompatActivity(), Observer {
         updateSpinner()
 
         // Then download the data from the firebase
-        var tempDbData: DatabaseData
         val dataRef = FirebaseDatabase.getInstance().getReference("databaseData")
         dataRef.addValueEventListener(object : ValueEventListener {
             override fun onDataChange(dataSnapshot: DataSnapshot) {
-                tempDbData = dataSnapshot.getValue(DatabaseData::class.java) ?: return
+                val tempDbData = DatabaseData()
+                val audioObjectsSnap = dataSnapshot.child("audioObjects")
+                val settingsSnap = dataSnapshot.child("settings")
+
+                tempDbData.appSettings = settingsSnap.getValue(AppSettings::class.java) ?: AppSettings()
+                audioObjectsSnap.children.forEach { snap ->
+                    val obj = snap.getValue(AudioObject::class.java)
+                    if (obj != null)
+                        tempDbData.audioObjects.add(obj)
+                }
 
                 // Now the database data has been downloaded. check if our device data is up to date.
                 // if it isn't, download the audio files again
-                if (tempDbData.dataVersion > data.dataVersion) {
+                if (tempDbData.appSettings.dataVersion > data.appSettings.dataVersion) {
                     data = tempDbData
                     updateSpinner()
+                    startProgress()
                     data.downloadAudioFiles(::onItemDownloaded)
                 }
             }
@@ -103,10 +115,26 @@ class MainActivity : AppCompatActivity(), Observer {
 
     // updates the spinner, from data
     private fun updateSpinner() {
-        spinnerAudioFile.adapter = ArrayAdapter<String>(
+        listViewAudioFile.adapter = object : ArrayAdapter<String>(
                 this,
-                android.R.layout.simple_spinner_dropdown_item,
-                data.audioObjects.map { it.name })
+                android.R.layout.simple_list_item_1,
+                data.audioObjects.map { it.name }) {
+
+            override fun getView(position: Int, convertView: View?, parent: ViewGroup?): View {
+                val newView =  TextView (context)
+                newView.setPadding(50, 20, 50, 20)
+                newView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 24f)
+                newView.text = getItem(position)
+                newView.setBackgroundColor(ContextCompat.getColor(context, if (position == selectedItemPosition) R.color.selectedBgColor else android.R.color.transparent))
+                return newView
+            }
+        }
+        listViewAudioFile.setOnItemClickListener { adapterView, view, position, id ->
+            selectedItemPosition = position
+            runOnUiThread {
+                (listViewAudioFile.adapter as ArrayAdapter<*>).notifyDataSetChanged()
+            }
+        }
     }
 
     // Returns the data loaded from the sharedPrefs
@@ -122,25 +150,37 @@ class MainActivity : AppCompatActivity(), Observer {
     // Loads the current alarm from the shared prefs
     private fun loadCurrentAlarm() {
         val jsonAlarm = getSharedPreferences(spName, MODE_PRIVATE).getString("currentAlarm", "")
-        currentAlarm = Gson().fromJson(jsonAlarm, AlarmObject::class.java) ?: return
+        currentAlarm = Gson().fromJson(jsonAlarm, AlarmObject::class.java) ?: AlarmObject()
         if (currentAlarm.timeInMillis != (-1).toLong()) {
 
             // sets the time to the alarm time
             setAlarmTimeTv(currentAlarm.timeInMillis)
 
-            // set the spinner to the alarm chosen item if exists
-            for (i in 0 until spinnerAudioFile.adapter.count)
-                if (spinnerAudioFile.getItemAtPosition(i).toString() == currentAlarm.audioObject.name)
-                    spinnerAudioFile.setSelection(i)
-
             // sets the repetitions to the alarm's repetitions
             edReps.setText(currentAlarm.repetitions.toString())
 
+            // set the selected item position to the position of the first one with a matching id
+            selectedItemPosition = data.audioObjects.indexOfFirst { it.firebaseId == currentAlarm.audioObject.firebaseId }
+
             // set the rest of the layout to the active alarm's one
+            setLayoutToAlarmMode(alarmOn = true)
+        }
+    }
+
+    // Changes the layout depending on the alarm mode
+    private fun setLayoutToAlarmMode(alarmOn: Boolean) {
+        if (alarmOn) {
             toggleButton.isChecked = true
             chosenTimeTv.setTextColor(ContextCompat.getColor(this, R.color.alarmOnTextColor))
+            tvClickDescription.setTextColor(ContextCompat.getColor(this, R.color.alarmOnTextColor))
             tvClickDescription.setText(R.string.tv_clickToChange_alarmOn)
+        } else {
+            toggleButton.isChecked = false
+            chosenTimeTv.setTextColor(ContextCompat.getColor(this, R.color.defaultTextColor))
+            tvClickDescription.setTextColor(ContextCompat.getColor(this, R.color.defaultTextColor))
+            tvClickDescription.setText(R.string.tv_clickToChange_alarmOff)
         }
+        (listViewAudioFile.adapter as ArrayAdapter<*>).notifyDataSetChanged()
     }
 
     // opens the TimePickerDialog window
@@ -171,31 +211,31 @@ class MainActivity : AppCompatActivity(), Observer {
 
     // Called when the toggle button is clicked. If it is now on, set the alarm, else - cancel it
     fun onToggleClicked(view: View) {
-        if ((view as ToggleButton).isChecked) {
-            toggleAlarm(true)
-        } else {
+        if ((view as FloatingActionButton).isChecked) {
             toggleAlarm(false)
-
+        } else {
+            //first we need to check if the fields are full
+            if (edReps.text.toString().isEmpty() || selectedItemPosition == -1)
+                toast("יש לבחור כמות חזרות וקובץ אודיו")
+            else
+                toggleAlarm(true)
         }
     }
 
+    // toggles the alarm on or off
     private fun toggleAlarm(on: Boolean, showToast: Boolean = true) {
         if (on) {
             alarmActive = true
-
             setAlarmOn(showToast)
-            toggleButton.isChecked = true
-            chosenTimeTv.setTextColor(ContextCompat.getColor(this, R.color.alarmOnTextColor))
-            tvClickDescription.setText(R.string.tv_clickToChange_alarmOn)
+            setLayoutToAlarmMode(alarmOn = true)
         } else {
             alarmActive = false
 
             if (this::pendingIntent.isInitialized)
                 alarmManager.cancel(pendingIntent)
-            toggleButton.isChecked = false
 
-            chosenTimeTv.setTextColor(ContextCompat.getColor(this, R.color.defaultTextColor))
-            tvClickDescription.setText(R.string.tv_clickToChange_alarmOff)
+            selectedItemPosition = -1
+            setLayoutToAlarmMode(alarmOn = false)
 
             // Reset the alarm time holder
             currentAlarm.timeInMillis = -1
@@ -204,6 +244,8 @@ class MainActivity : AppCompatActivity(), Observer {
             if (showToast)
                 Toast.makeText(this, "ההתראה כובתה", Toast.LENGTH_SHORT).show()
         }
+        // whenever we change the state of the current alarm, save it
+        saveCurrentAlarmData()
     }
 
 
@@ -230,16 +272,21 @@ class MainActivity : AppCompatActivity(), Observer {
 
 
         currentAlarm.timeInMillis = alarmTime.timeInMillis
-        saveCurrentAlarmData()
     }
 
 
     // Saves the current AlarmObject to the device
     private fun saveCurrentAlarmData() {
         val editor = getSharedPreferences(spName, MODE_PRIVATE).edit()
-        val reps = edReps.text.toString()
-        currentAlarm.repetitions = (if (reps.isEmpty()) "1" else reps).toInt()
-        currentAlarm.audioObject = data.audioObjects[spinnerAudioFile.selectedItemPosition]
+        // if the current alarm has no time, it is an empty one - don't read the rest of the values
+        if(currentAlarm.timeInMillis == (-1).toLong()){
+            currentAlarm = AlarmObject()
+        }
+        else {
+            val reps = edReps.text.toString()
+            currentAlarm.repetitions = (if (reps.isEmpty()) "1" else reps).toInt()
+            currentAlarm.audioObject = data.audioObjects[selectedItemPosition]
+        }
         editor.putString("currentAlarm", currentAlarm.toJson())
         editor.apply()
     }
@@ -281,3 +328,34 @@ class MainActivity : AppCompatActivity(), Observer {
         //TODO("implement progress bar in the future")
     }
 }
+
+
+private var FloatingActionButton.isChecked: Boolean
+    get() : Boolean {
+        return tag == 1
+    }
+    set(on) {
+        if (on) {
+            tag = 1
+            this.hide()
+            backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(context, android.R.color.holo_red_light))
+            setImageDrawable(ContextCompat.getDrawable(context, R.drawable.ic_delete))
+            doAsync {
+                Thread.sleep(1000)
+                uiThread {
+                    it.show()
+                }
+            }
+        } else {
+            tag = -1
+            this.hide()
+            backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(this.context, android.R.color.holo_green_light))
+            setImageDrawable(ContextCompat.getDrawable(context, R.drawable.ic_done))
+            doAsync {
+                Thread.sleep(750)
+                uiThread {
+                    it.show()
+                }
+            }
+        }
+    }

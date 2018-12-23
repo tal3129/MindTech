@@ -3,13 +3,11 @@ package com.onlapplications.mindtechmanager
 import android.app.Activity
 import android.app.Dialog
 import android.content.Intent
-import android.graphics.Color
-import android.graphics.drawable.ColorDrawable
 import android.net.Uri
 import android.support.v7.app.AppCompatActivity
 import android.os.Bundle
-import android.support.v7.app.AlertDialog
 import android.support.v7.widget.LinearLayoutManager
+import android.util.Log
 import android.widget.Toast
 import com.google.firebase.FirebaseApp
 import com.google.firebase.database.DataSnapshot
@@ -19,12 +17,8 @@ import com.google.firebase.database.ValueEventListener
 import com.google.firebase.storage.FirebaseStorage
 import com.google.gson.Gson
 import kotlinx.android.synthetic.main.activity_main.*
-import kotlinx.android.synthetic.main.activity_main.view.*
 import kotlinx.android.synthetic.main.add_audio_obj.*
-import kotlinx.android.synthetic.main.add_audio_obj.view.*
 import org.jetbrains.anko.progressDialog
-import org.jetbrains.anko.toast
-import java.io.File
 
 class MainActivity : AppCompatActivity() {
     companion object {
@@ -50,14 +44,14 @@ class MainActivity : AppCompatActivity() {
         rvAudioFiles.layoutManager = LinearLayoutManager(this)
 
         btnAddAudioFile.setOnClickListener {
-            openAddItemDialog()
+            openUploadItemDialog()
         }
 
         // Downloading the audio data from the firebase
         downloadDatabaseData()
     }
 
-    private fun openAddItemDialog() {
+    private fun openUploadItemDialog() {
 
         val dialog = Dialog(this)
         dialog.setContentView(R.layout.add_audio_obj)
@@ -86,15 +80,19 @@ class MainActivity : AppCompatActivity() {
                 ref.setValue(newObject)
                 updateDatabaseVersion()
 
-                val prog = progressDialog(message = "Please wait a bit…", title = "Fetching data")
+                val prog = progressDialog(message = "אנא המתן, התהליך יכול לקחת זמן עם קבצים גדולים…", title = "מעלה קובץ")
                 prog.setCancelable(false)
                 prog.show()
 
                 storageRef.putFile(lastChosenFile!!).addOnCompleteListener({
                     dialog.dismiss()
                     prog.dismiss()
+                    updateAdapter()
                     Toast.makeText(this,"הקובץ הועלה", Toast.LENGTH_SHORT).show()
-                })
+                }).addOnProgressListener {
+                    val progress = 100.0 * it.bytesTransferred / it.totalByteCount
+                    prog.progress = progress.toInt()
+                }
 
                 // reset the last chosen file
                 lastChosenFile = null
@@ -109,7 +107,7 @@ class MainActivity : AppCompatActivity() {
     private fun performFileSearch() {
         val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
             addCategory(Intent.CATEGORY_OPENABLE)
-            type = "*/*"
+            type = "audio/*"
         }
 
         startActivityForResult(intent, READ_REQUEST_CODE)
@@ -123,18 +121,18 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun updateAdapter() {
-        rvAudioFiles.adapter = AudioFileAdapter(data.audioObjects.values.toList(), this, onItemLongClick = {
+        rvAudioFiles.adapter = AudioFileAdapter(data.audioObjects, this, onItemLongClick = {
             FirebaseDatabase.getInstance().getReference("databaseData").child("audioObjects").child(it.firebaseId).removeValue()
             FirebaseStorage.getInstance().getReference("audioFiles").child(it.firebaseId).delete()
             updateDatabaseVersion()
-            return@AudioFileAdapter true
+            return@AudioFileAdapter false
         })
     }
 
     // update the version
     private fun updateDatabaseVersion() {
         val ref = FirebaseDatabase.getInstance().getReference("databaseData")
-        ref.child("dataVersion").setValue(data.dataVersion + 1)
+        ref.child("settings").child("dataVersion").setValue(data.appSettings.dataVersion + 1)
     }
 
     private fun downloadDatabaseData() {
@@ -143,22 +141,30 @@ class MainActivity : AppCompatActivity() {
         updateAdapter()
 
         // Then download the data from the firebase
-        var tempDbData: DatabaseData
         val dataRef = FirebaseDatabase.getInstance().getReference("databaseData")
         dataRef.addValueEventListener(object : ValueEventListener {
             override fun onDataChange(dataSnapshot: DataSnapshot) {
-                tempDbData = dataSnapshot.getValue(DatabaseData::class.java) ?: return
+                val tempDbData = DatabaseData()
+                val audioObjectsSnap = dataSnapshot.child("audioObjects")
+                val settingsSnap = dataSnapshot.child("settings")
+
+                tempDbData.appSettings = settingsSnap.getValue(AppSettings::class.java) ?: AppSettings()
+
+                audioObjectsSnap.children.forEach { snap ->
+                    val obj = snap.getValue(AudioObject::class.java)
+                    if (obj != null)
+                        tempDbData.audioObjects.add(obj)
+                }
 
                 // Now the database data has been downloaded. check if our device data is up to date.
                 // if it isn't, download the audio files again
-                if (tempDbData.dataVersion > data.dataVersion) {
+                if (tempDbData.appSettings.dataVersion > data.appSettings.dataVersion) {
                     data = tempDbData
                     updateAdapter()
                     startProgress()
                     data.downloadAudioFiles(::onItemDownloaded)
                 }
             }
-
             override fun onCancelled(databaseError: DatabaseError) {
             }
         })
@@ -167,6 +173,7 @@ class MainActivity : AppCompatActivity() {
     // starts the download progress
     private fun startProgress() {
         //TODO("implement progress bar in the future")
+        progressed = 0
         maxProgress = data.audioObjects.size
     }
 
@@ -174,13 +181,17 @@ class MainActivity : AppCompatActivity() {
     private fun onItemDownloaded() {
         //TODO("implement progress bar in the future")
         progressed++
+        Log.d("!!!TEST!!!", "!!!ITEM DOWNLOADED!!!")
+        // we want to update the adapter with the current new time
+        updateAdapter()
+        // we want to save the path of the new item
+        saveCurrentData()
         if (progressed == maxProgress)
             finishProgress()
     }
 
     private fun finishProgress() {
         //TODO("implement progress bar in the future")
-        updateAdapter()
     }
 
     // Returns the data loaded from the sharedPrefs

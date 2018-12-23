@@ -2,7 +2,7 @@ package com.onlapplications.customalarmclock
 
 import com.google.gson.Gson
 
-class DatabaseData (val audioObjects: ArrayList<AudioObject> = ArrayList(), var dataVersion: Int = -1) {
+class DatabaseData (val audioObjects: ArrayList<AudioObject> = ArrayList(), var appSettings: AppSettings = AppSettings()) {
     fun toJson(): String {
         return Gson().toJson(this)
     }
