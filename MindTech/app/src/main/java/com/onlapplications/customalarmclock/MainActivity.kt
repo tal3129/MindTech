@@ -23,7 +23,6 @@ import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ValueEventListener
 import com.google.gson.Gson
 import kotlinx.android.synthetic.main.new_main.*
-import kotlinx.coroutines.selects.select
 import org.jetbrains.anko.doAsync
 import org.jetbrains.anko.toast
 import org.jetbrains.anko.uiThread
@@ -41,7 +40,8 @@ class MainActivity : AppCompatActivity(), Observer {
 
     // the current alarm time in milliseconds. -1 if it is not active. Try to keep this object saved in the sp, as it is used from there when an alarm is made
     private var currentAlarm: AlarmObject = AlarmObject()
-    private var alarmActive: Boolean = false
+    private var currentAlarmActive: Boolean = false
+        get() = currentAlarm.timeInMillis != (-1).toLong()
 
     // The audio data from the firebase
     private var data = DatabaseData()
@@ -121,7 +121,7 @@ class MainActivity : AppCompatActivity(), Observer {
                 data.audioObjects.map { it.name }) {
 
             override fun getView(position: Int, convertView: View?, parent: ViewGroup?): View {
-                val newView =  TextView (context)
+                val newView = TextView(context)
                 newView.setPadding(50, 20, 50, 20)
                 newView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 24f)
                 newView.text = getItem(position)
@@ -151,7 +151,7 @@ class MainActivity : AppCompatActivity(), Observer {
     private fun loadCurrentAlarm() {
         val jsonAlarm = getSharedPreferences(spName, MODE_PRIVATE).getString("currentAlarm", "")
         currentAlarm = Gson().fromJson(jsonAlarm, AlarmObject::class.java) ?: AlarmObject()
-        if (currentAlarm.timeInMillis != (-1).toLong()) {
+        if (currentAlarmActive) {
 
             // sets the time to the alarm time
             setAlarmTimeTv(currentAlarm.timeInMillis)
@@ -194,7 +194,8 @@ class MainActivity : AppCompatActivity(), Observer {
                     val f = DecimalFormat("00")
                     chosenTimeTv.text = f.format(selectedHour) + ":" + f.format(selectedMinute)
                     // Show a toast if we had an alarm active
-                    toggleAlarm(false, alarmActive)
+                    if (currentAlarmActive)
+                        toggleAlarm(false, currentAlarmActive)
                 }
                 , hour, minute, true)
         mTimePicker.setTitle("בחר שעה")
@@ -225,12 +226,9 @@ class MainActivity : AppCompatActivity(), Observer {
     // toggles the alarm on or off
     private fun toggleAlarm(on: Boolean, showToast: Boolean = true) {
         if (on) {
-            alarmActive = true
             setAlarmOn(showToast)
             setLayoutToAlarmMode(alarmOn = true)
         } else {
-            alarmActive = false
-
             if (this::pendingIntent.isInitialized)
                 alarmManager.cancel(pendingIntent)
 
@@ -279,10 +277,9 @@ class MainActivity : AppCompatActivity(), Observer {
     private fun saveCurrentAlarmData() {
         val editor = getSharedPreferences(spName, MODE_PRIVATE).edit()
         // if the current alarm has no time, it is an empty one - don't read the rest of the values
-        if(currentAlarm.timeInMillis == (-1).toLong()){
+        if (!currentAlarmActive) {
             currentAlarm = AlarmObject()
-        }
-        else {
+        } else {
             val reps = edReps.text.toString()
             currentAlarm.repetitions = (if (reps.isEmpty()) "1" else reps).toInt()
             currentAlarm.audioObject = data.audioObjects[selectedItemPosition]
@@ -338,22 +335,24 @@ private var FloatingActionButton.isChecked: Boolean
         if (on) {
             tag = 1
             this.hide()
-            backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(context, android.R.color.holo_red_light))
-            setImageDrawable(ContextCompat.getDrawable(context, R.drawable.ic_delete))
+
             doAsync {
                 Thread.sleep(1000)
                 uiThread {
+                    it.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(context, android.R.color.holo_red_light))
+                    it.setImageDrawable(ContextCompat.getDrawable(context, R.drawable.ic_delete))
                     it.show()
                 }
             }
         } else {
             tag = -1
             this.hide()
-            backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(this.context, android.R.color.holo_green_light))
-            setImageDrawable(ContextCompat.getDrawable(context, R.drawable.ic_done))
+
             doAsync {
-                Thread.sleep(750)
+                Thread.sleep(1000)
                 uiThread {
+                    it.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(context, android.R.color.holo_green_light))
+                    it.setImageDrawable(ContextCompat.getDrawable(context, R.drawable.ic_done))
                     it.show()
                 }
             }
