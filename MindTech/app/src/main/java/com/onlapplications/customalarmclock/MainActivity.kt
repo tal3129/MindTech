@@ -47,8 +47,11 @@ class MainActivity : AppCompatActivity(), Observer {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
+        setContentView(R.layout.new_main)
 
+
+
+        /*
         // Initializations
         FirebaseApp.initializeApp(this)
         ObservableObject.getInstance().addObserver(this)
@@ -68,6 +71,8 @@ class MainActivity : AppCompatActivity(), Observer {
 
         // Load prev alarms from shared prefs
         loadCurrentAlarm()
+
+        */
     }
 
     private fun downloadDatabaseData() {
