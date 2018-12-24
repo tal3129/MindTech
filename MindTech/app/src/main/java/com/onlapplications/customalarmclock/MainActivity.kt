@@ -126,7 +126,7 @@ class MainActivity : AppCompatActivity(), Observer {
                 newView.setPadding(50, 20, 50, 20)
                 newView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 24f)
                 newView.text = getItem(position)
-                newView.setTextColor(ContextCompat.getColor(context, if (position == selectedItemPosition) R.color.colorPrimary else R.color.defaultTextColor))
+                newView.setTextColor(ContextCompat.getColor(context, if (position == selectedItemPosition) R.color.alarmOnTextColor else R.color.defaultTextColor))
                 if (currentAlarmActive && position == selectedItemPosition)
                     newView.setBackgroundColor(ContextCompat.getColor(context, R.color.background))
                 else
