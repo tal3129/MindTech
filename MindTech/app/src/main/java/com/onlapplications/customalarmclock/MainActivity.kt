@@ -262,6 +262,9 @@ class MainActivity : AppCompatActivity(), Observer {
             if (this::pendingIntent.isInitialized)
                 alarmManager.cancel(pendingIntent)
 
+            // clear the current mp
+            ObservableObject.getInstance().resetMp()
+
             selectedItemPosition = -1
             setLayoutToAlarmMode(alarmOn = false)
 

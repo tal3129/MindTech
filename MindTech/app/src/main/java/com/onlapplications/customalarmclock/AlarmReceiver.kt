@@ -29,38 +29,42 @@ class AlarmReceiver : BroadcastReceiver() {
         // play the alarm sound asyncly
         doAsync {
             if (audioLen > 0) {
+                ObservableObject.getInstance().resetMp()
+                ObservableObject.getInstance().mp = MediaPlayer()
                 for (i in 1..alarmData.repetitions) {
                     playAlarmSound(alarmData)
                     Thread.sleep(audioLen + interval)
                 }
             }
+
+            // cancel the current alarm
+            alarmData.timeInMillis = -1
+            val amg = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+            val pendingIntent = PendingIntent.getBroadcast(context, 0, intent, PendingIntent.FLAG_CANCEL_CURRENT)
+            amg.cancel(pendingIntent)
+
+            // save the changes
+            val editor = sp.edit()
+            editor.putString("currentAlarm", alarmData.toJson())
+            editor.apply()
+
+            // notify MainActivity that the alarm was activated
+            ObservableObject.getInstance().updateValue(intent)
         }
-
-        // cancel the current alarm
-        alarmData.timeInMillis = -1
-        val amg = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-        val pendingIntent = PendingIntent.getBroadcast(context, 0, intent, PendingIntent.FLAG_CANCEL_CURRENT)
-        amg.cancel(pendingIntent)
-
-        // save the changes
-        val editor = sp.edit()
-        editor.putString("currentAlarm", alarmData.toJson())
-        editor.apply()
-
-        // notify MainActivity that the alarm was activated
-        ObservableObject.getInstance().updateValue(intent)
     }
 
     // plays the sound
     private fun playAlarmSound(alarmData: AlarmObject) {
         val audioPath = alarmData.audioObject.pathInPhone
-        val mp = MediaPlayer()
-        try {
-            mp.setDataSource(audioPath)
-            mp.prepare()
-            mp.start()
-        } catch (e: Exception) {
-            e.printStackTrace()
+        val mp = ObservableObject.getInstance().mp
+        if (mp!= null) {
+            try {
+                mp.setDataSource(audioPath)
+                mp.prepare()
+                mp.start()
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
         }
     }
 }
