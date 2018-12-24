@@ -7,10 +7,10 @@ class DatabaseData (val audioObjects: ArrayList<AudioObject> = ArrayList(), var 
         return Gson().toJson(this)
     }
 
-    // downloads all audio files it the audioObject list
-    fun downloadAudioFiles(onItemDownloaded : () -> Unit) {
+    // Downloads ALL audio files it the audioObject list - may take time
+    fun downloadAllAudioFiles() {
         audioObjects.forEach {
-            it.downloadFile(onItemDownloaded)
+            it.downloadFileNoDialog()
         }
     }
 }

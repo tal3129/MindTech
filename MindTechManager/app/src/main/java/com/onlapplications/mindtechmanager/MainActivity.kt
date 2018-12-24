@@ -181,7 +181,6 @@ class MainActivity : AppCompatActivity() {
     private fun onItemDownloaded() {
         //TODO("implement progress bar in the future")
         progressed++
-        Log.d("!!!TEST!!!", "!!!ITEM DOWNLOADED!!!")
         // we want to update the adapter with the current new time
         updateAdapter()
         // we want to save the path of the new item

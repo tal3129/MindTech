@@ -2,23 +2,21 @@ package com.onlapplications.customalarmclock
 
 import android.app.AlarmManager
 import android.app.PendingIntent
+import android.app.TimePickerDialog
 import android.content.Context
 import android.content.Intent
-import android.os.Bundle
-import android.support.v7.app.AppCompatActivity
-import android.view.View
-import java.text.DecimalFormat
-import java.text.SimpleDateFormat
-import android.app.TimePickerDialog
 import android.content.res.ColorStateList
-import android.graphics.drawable.AnimationDrawable
 import android.graphics.drawable.TransitionDrawable
+import android.os.Bundle
 import android.support.design.widget.FloatingActionButton
 import android.support.v4.content.ContextCompat
-import android.transition.Transition
+import android.support.v7.app.AppCompatActivity
 import android.util.TypedValue
+import android.view.View
 import android.view.ViewGroup
-import android.widget.*
+import android.widget.ArrayAdapter
+import android.widget.TextView
+import android.widget.Toast
 import com.google.firebase.FirebaseApp
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
@@ -27,8 +25,9 @@ import com.google.firebase.database.ValueEventListener
 import com.google.gson.Gson
 import kotlinx.android.synthetic.main.new_main.*
 import org.jetbrains.anko.*
+import java.text.DecimalFormat
+import java.text.SimpleDateFormat
 import java.util.*
-import kotlin.jvm.java
 
 
 class MainActivity : AppCompatActivity(), Observer {
@@ -93,20 +92,15 @@ class MainActivity : AppCompatActivity(), Observer {
                 val settingsSnap = dataSnapshot.child("settings")
 
                 tempDbData.appSettings = settingsSnap.getValue(AppSettings::class.java) ?: AppSettings()
+                // For each child of the downloaded snapshot, if there is no object with a matching id -
+                // it is a new one - so add it to the data
                 audioObjectsSnap.children.forEach { snap ->
-                    val obj = snap.getValue(AudioObject::class.java)
-                    if (obj != null)
-                        tempDbData.audioObjects.add(obj)
+                    val downloadedObj = snap.getValue(AudioObject::class.java)
+                    if (downloadedObj != null)
+                        if (data.audioObjects.none { it.firebaseId == downloadedObj.firebaseId })
+                            data.audioObjects.add(downloadedObj)
                 }
-
-                // Now the database data has been downloaded. check if our device data is up to date.
-                // if it isn't, download the audio files again
-                if (tempDbData.appSettings.dataVersion > data.appSettings.dataVersion) {
-                    data = tempDbData
-                    updateAdapter()
-                    startProgress()
-                    data.downloadAudioFiles(::onItemDownloaded)
-                }
+                updateAdapter()
             }
 
             override fun onCancelled(databaseError: DatabaseError) {
@@ -138,6 +132,7 @@ class MainActivity : AppCompatActivity(), Observer {
             if (toggleButton.isOrWillBeHidden)
                 toggleButton.show()
             selectedItemPosition = position
+            currentAlarm.audioObject = data.audioObjects[selectedItemPosition]
             runOnUiThread {
                 (listViewAudioFile.adapter as ArrayAdapter<*>).notifyDataSetChanged()
             }
@@ -239,14 +234,28 @@ class MainActivity : AppCompatActivity(), Observer {
             //first we need to check if the fields are full
             if (edReps.text.toString().isEmpty() || selectedItemPosition == -1)
                 toast("יש לבחור כמות חזרות וקובץ אודיו")
-            else
+            else {
                 toggleAlarm(true)
+            }
+        }
+    }
+
+    // after the download was finished, continue with toggling the alarm, else - show error toast
+    private fun onDownloadFinish(successful: Boolean) {
+        if (successful) {
+            toggleAlarm(true)
+        } else {
+            toast("ארעה שגיאה בהורדת הקובץ")
         }
     }
 
     // toggles the alarm on or off
     private fun toggleAlarm(on: Boolean, showToast: Boolean = true) {
         if (on) {
+            if (currentAlarm.audioObject.pathInPhone.isEmpty()) {
+                currentAlarm.audioObject.downloadFile(this, ::onDownloadFinish)
+                return
+            }
             setAlarmOn(showToast)
             setLayoutToAlarmMode(alarmOn = true)
         } else {
@@ -329,21 +338,18 @@ class MainActivity : AppCompatActivity(), Observer {
 
     // starts the download progress
     private fun startProgress() {
-        //TODO("implement progress bar in the future")
-        maxProgress = data.audioObjects.size
+        val prog = progressDialog(message = "אנא המתן, התהליך יכול לקחת זמן עם קבצים גדולים…", title = "מעלה קובץ")
+        prog.setCancelable(false)
+        prog.show()
     }
 
-    // called whenever an audio object was downloaded
-    private fun onItemDownloaded() {
-        //TODO("implement progress bar in the future")
-        progressed++
-        if (progressed == maxProgress)
-            finishProgress()
+    // called whenever an there is progress on the file download
+    private fun onPorgress() {
+
     }
 
-    // called after all audio objects were downloaded
+    // called after the chosen file was downloaded
     private fun finishProgress() {
-        //TODO("implement progress bar in the future")
     }
 }
 
