@@ -11,8 +11,11 @@ import java.text.DecimalFormat
 import java.text.SimpleDateFormat
 import android.app.TimePickerDialog
 import android.content.res.ColorStateList
+import android.graphics.drawable.AnimationDrawable
+import android.graphics.drawable.TransitionDrawable
 import android.support.design.widget.FloatingActionButton
 import android.support.v4.content.ContextCompat
+import android.transition.Transition
 import android.util.TypedValue
 import android.view.ViewGroup
 import android.widget.*
@@ -23,9 +26,7 @@ import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ValueEventListener
 import com.google.gson.Gson
 import kotlinx.android.synthetic.main.new_main.*
-import org.jetbrains.anko.doAsync
-import org.jetbrains.anko.toast
-import org.jetbrains.anko.uiThread
+import org.jetbrains.anko.*
 import java.util.*
 import kotlin.jvm.java
 
@@ -128,6 +129,8 @@ class MainActivity : AppCompatActivity(), Observer {
                 newView.setTextColor(ContextCompat.getColor(context, if (position == selectedItemPosition) R.color.colorPrimary else R.color.defaultTextColor))
                 if (currentAlarmActive && position == selectedItemPosition)
                     newView.setBackgroundColor(ContextCompat.getColor(context, R.color.background))
+                else
+                    newView.backgroundResource = R.drawable.list_background_animation
                 return newView
             }
         }
@@ -177,11 +180,19 @@ class MainActivity : AppCompatActivity(), Observer {
             toggleButton.isChecked = true
             edReps.isEnabled = false
             listViewAudioFile.isEnabled = false
-            //TODO Do animation for coloring
-            listViewAudioFile.getChildAt(selectedItemPosition)?.setBackgroundColor(ContextCompat.getColor(this, R.color.background))
             chosenTimeTv.setTextColor(ContextCompat.getColor(this, R.color.alarmOnTextColor))
             tvClickDescription.setTextColor(ContextCompat.getColor(this, R.color.alarmOnTextColor))
             tvClickDescription.setText(R.string.tv_clickToChange_alarmOn)
+            val selectedItem = listViewAudioFile.getChildAt(selectedItemPosition)
+            if (selectedItem != null && selectedItem.background is TransitionDrawable) {
+                (selectedItem.background as TransitionDrawable).startTransition(1250)
+                Thread {
+                    Thread.sleep(1250)
+                    runOnUiThread {
+                        (listViewAudioFile.adapter as ArrayAdapter<*>).notifyDataSetChanged()
+                    }
+                }
+            }
         } else {
             toggleButton.isChecked = false
             edReps.isEnabled = true
@@ -189,8 +200,8 @@ class MainActivity : AppCompatActivity(), Observer {
             chosenTimeTv.setTextColor(ContextCompat.getColor(this, R.color.defaultTextColor))
             tvClickDescription.setTextColor(ContextCompat.getColor(this, R.color.defaultTextColor))
             tvClickDescription.setText(R.string.tv_clickToChange_alarmOff)
+            (listViewAudioFile.adapter as ArrayAdapter<*>).notifyDataSetChanged()
         }
-        (listViewAudioFile.adapter as ArrayAdapter<*>).notifyDataSetChanged()
     }
 
     // opens the TimePickerDialog window
