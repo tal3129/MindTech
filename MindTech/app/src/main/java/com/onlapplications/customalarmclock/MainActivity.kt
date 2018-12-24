@@ -81,7 +81,7 @@ class MainActivity : AppCompatActivity(), Observer {
     private fun downloadDatabaseData() {
         // First load the data from the device
         data = getDeviceData()
-        updateSpinner()
+        updateAdapter()
 
         // Then download the data from the firebase
         val dataRef = FirebaseDatabase.getInstance().getReference("databaseData")
@@ -102,7 +102,7 @@ class MainActivity : AppCompatActivity(), Observer {
                 // if it isn't, download the audio files again
                 if (tempDbData.appSettings.dataVersion > data.appSettings.dataVersion) {
                     data = tempDbData
-                    updateSpinner()
+                    updateAdapter()
                     startProgress()
                     data.downloadAudioFiles(::onItemDownloaded)
                 }
@@ -113,8 +113,8 @@ class MainActivity : AppCompatActivity(), Observer {
         })
     }
 
-    // updates the spinner, from data
-    private fun updateSpinner() {
+    // updates the adapter, from data
+    private fun updateAdapter() {
         listViewAudioFile.adapter = object : ArrayAdapter<String>(
                 this,
                 android.R.layout.simple_list_item_1,
@@ -125,11 +125,15 @@ class MainActivity : AppCompatActivity(), Observer {
                 newView.setPadding(50, 20, 50, 20)
                 newView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 24f)
                 newView.text = getItem(position)
-                newView.setBackgroundColor(ContextCompat.getColor(context, if (position == selectedItemPosition) R.color.selectedBgColor else android.R.color.transparent))
+                newView.setTextColor(ContextCompat.getColor(context, if (position == selectedItemPosition) R.color.colorPrimary else R.color.defaultTextColor))
+                if (currentAlarmActive && position == selectedItemPosition)
+                    newView.setBackgroundColor(ContextCompat.getColor(context, R.color.background))
                 return newView
             }
         }
         listViewAudioFile.setOnItemClickListener { adapterView, view, position, id ->
+            if (toggleButton.isOrWillBeHidden)
+                toggleButton.show()
             selectedItemPosition = position
             runOnUiThread {
                 (listViewAudioFile.adapter as ArrayAdapter<*>).notifyDataSetChanged()
@@ -171,11 +175,17 @@ class MainActivity : AppCompatActivity(), Observer {
     private fun setLayoutToAlarmMode(alarmOn: Boolean) {
         if (alarmOn) {
             toggleButton.isChecked = true
+            edReps.isEnabled = false
+            listViewAudioFile.isEnabled = false
+            //TODO Do animation for coloring
+            listViewAudioFile.getChildAt(selectedItemPosition)?.setBackgroundColor(ContextCompat.getColor(this, R.color.background))
             chosenTimeTv.setTextColor(ContextCompat.getColor(this, R.color.alarmOnTextColor))
             tvClickDescription.setTextColor(ContextCompat.getColor(this, R.color.alarmOnTextColor))
             tvClickDescription.setText(R.string.tv_clickToChange_alarmOn)
         } else {
             toggleButton.isChecked = false
+            edReps.isEnabled = true
+            listViewAudioFile.isEnabled = true
             chosenTimeTv.setTextColor(ContextCompat.getColor(this, R.color.defaultTextColor))
             tvClickDescription.setTextColor(ContextCompat.getColor(this, R.color.defaultTextColor))
             tvClickDescription.setText(R.string.tv_clickToChange_alarmOff)
@@ -353,7 +363,6 @@ private var FloatingActionButton.isChecked: Boolean
                 uiThread {
                     it.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(context, android.R.color.holo_green_light))
                     it.setImageDrawable(ContextCompat.getDrawable(context, R.drawable.ic_done))
-                    it.show()
                 }
             }
         }

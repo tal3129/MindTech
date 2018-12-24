@@ -25,7 +25,7 @@
         android:id="@+id/clickToChangeTimeLayout"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:background="@color/secondary"
+        android:background="@color/background"
         app:layout_constraintBottom_toBottomOf="@id/guideline"
         app:layout_constraintTop_toTopOf="parent">
 
@@ -112,7 +112,13 @@
 
     </android.support.constraint.ConstraintLayout>
 
-
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginEnd="12dp"
+        app:layout_constraintBottom_toBottomOf="@id/repeatLayout"
+        android:text="בחר קובץ אודיו:"/>
     <ListView
         android:id="@+id/listViewAudioFile"
         android:layout_width="match_parent"

@@ -4,7 +4,7 @@
     <color name="colorPrimaryDark">#5075e900</color>
     <color name="colorAccent">#448aff</color>
 
-    <color name="secondary">#5075e900</color>
+    <color name="background">#5075e900</color>
 
     <color name="alarmOnTextColor">#2196f3</color>
     <color name="defaultTextColor">#808080</color>

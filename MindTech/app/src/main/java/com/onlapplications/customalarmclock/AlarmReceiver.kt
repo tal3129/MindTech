@@ -26,6 +26,7 @@ class AlarmReceiver : BroadcastReceiver() {
         val audioLen = alarmData.audioObject.getDurationInMillis()
         val interval = 1000
 
+        // play the alarm sound asyncly
         doAsync {
             if (audioLen > 0) {
                 for (i in 1..alarmData.repetitions) {
@@ -33,19 +34,21 @@ class AlarmReceiver : BroadcastReceiver() {
                     Thread.sleep(audioLen + interval)
                 }
             }
-            alarmData.timeInMillis = -1
-
-            val amg = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-            val pendingIntent = PendingIntent.getBroadcast(context, 0, intent, PendingIntent.FLAG_CANCEL_CURRENT)
-            amg.cancel(pendingIntent)
-
-            ObservableObject.getInstance().updateValue(intent)
-
-            // save the changes
-            val editor = sp.edit()
-            editor.putString("currentAlarm", alarmData.toJson())
-            editor.apply()
         }
+
+        // cancel the current alarm
+        alarmData.timeInMillis = -1
+        val amg = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+        val pendingIntent = PendingIntent.getBroadcast(context, 0, intent, PendingIntent.FLAG_CANCEL_CURRENT)
+        amg.cancel(pendingIntent)
+
+        // save the changes
+        val editor = sp.edit()
+        editor.putString("currentAlarm", alarmData.toJson())
+        editor.apply()
+
+        // notify MainActivity that the alarm was activated
+        ObservableObject.getInstance().updateValue(intent)
     }
 
     // plays the sound
