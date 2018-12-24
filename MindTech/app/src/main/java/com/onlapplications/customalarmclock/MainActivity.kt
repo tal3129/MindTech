@@ -370,7 +370,7 @@ private var FloatingActionButton.isChecked: Boolean
             this.hide()
 
             doAsync {
-                Thread.sleep(1000)
+                Thread.sleep(250)
                 uiThread {
                     it.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(context, android.R.color.holo_green_light))
                     it.setImageDrawable(ContextCompat.getDrawable(context, R.drawable.ic_done))
