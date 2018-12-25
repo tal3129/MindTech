@@ -24,7 +24,10 @@ import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ValueEventListener
 import com.google.gson.Gson
 import kotlinx.android.synthetic.main.new_main.*
-import org.jetbrains.anko.*
+import org.jetbrains.anko.backgroundResource
+import org.jetbrains.anko.doAsync
+import org.jetbrains.anko.toast
+import org.jetbrains.anko.uiThread
 import java.text.DecimalFormat
 import java.text.SimpleDateFormat
 import java.util.*
@@ -87,19 +90,34 @@ class MainActivity : AppCompatActivity(), Observer {
         val dataRef = FirebaseDatabase.getInstance().getReference("databaseData")
         dataRef.addValueEventListener(object : ValueEventListener {
             override fun onDataChange(dataSnapshot: DataSnapshot) {
-                val tempDbData = DatabaseData()
+                val fbAudioObjectList = ArrayList<AudioObject>()
                 val audioObjectsSnap = dataSnapshot.child("audioObjects")
                 val settingsSnap = dataSnapshot.child("settings")
 
-                tempDbData.appSettings = settingsSnap.getValue(AppSettings::class.java) ?: AppSettings()
-                // For each child of the downloaded snapshot, if there is no object with a matching id -
-                // it is a new one - so add it to the data
+                data.appSettings = settingsSnap.getValue(AppSettings::class.java) ?: AppSettings()
+
+                // Move all the fb objects to a list
                 audioObjectsSnap.children.forEach { snap ->
                     val downloadedObj = snap.getValue(AudioObject::class.java)
                     if (downloadedObj != null)
-                        if (data.audioObjects.none { it.firebaseId == downloadedObj.firebaseId })
-                            data.audioObjects.add(downloadedObj)
+                        fbAudioObjectList.add(downloadedObj)
                 }
+
+                // Add all new firebase audio objects that doesn't exist in the data
+                data.audioObjects.addAll(fbAudioObjectList.filter { fbObj ->
+                    data.audioObjects.none { dataObj ->
+                        fbObj.firebaseId == dataObj.firebaseId
+                    }
+                })
+
+
+                // Remove all deleted data audio objects that doesn't exist in the firebase
+                data.audioObjects.removeAll { dataObj ->
+                    fbAudioObjectList.none {fbObj ->
+                        fbObj.firebaseId == dataObj.firebaseId
+                    }
+                }
+
                 updateAdapter()
             }
 
