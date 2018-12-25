@@ -51,8 +51,7 @@ class AudioObject(var firebaseId: String = "", var name: String = "", var pathIn
     }
 
 
-
-    // Receives a uri, returns the length of the object in it
+    // Returns the length of this audio object
     fun getDurationInMillis(): Long {
         return try {
             val mmr = MediaMetadataRetriever()

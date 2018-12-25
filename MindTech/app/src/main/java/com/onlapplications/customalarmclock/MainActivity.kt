@@ -49,9 +49,6 @@ class MainActivity : AppCompatActivity(), Observer {
     // The audio data from the firebase
     private var data = DatabaseData()
 
-    private var progressed = 0
-    private var maxProgress = 0
-
     private var selectedItemPosition: Int = -1
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -81,6 +78,7 @@ class MainActivity : AppCompatActivity(), Observer {
         loadCurrentAlarm()
     }
 
+    // Downloads new objects from the databse
     private fun downloadDatabaseData() {
         // First load the data from the device
         data = getDeviceData()
@@ -113,7 +111,7 @@ class MainActivity : AppCompatActivity(), Observer {
 
                 // Remove all deleted data audio objects that doesn't exist in the firebase
                 data.audioObjects.removeAll { dataObj ->
-                    fbAudioObjectList.none {fbObj ->
+                    fbAudioObjectList.none { fbObj ->
                         fbObj.firebaseId == dataObj.firebaseId
                     }
                 }
@@ -126,7 +124,7 @@ class MainActivity : AppCompatActivity(), Observer {
         })
     }
 
-    // updates the adapter, from data
+    // Updates the adapter, from data
     private fun updateAdapter() {
         listViewAudioFile.adapter = object : ArrayAdapter<String>(
                 this,
