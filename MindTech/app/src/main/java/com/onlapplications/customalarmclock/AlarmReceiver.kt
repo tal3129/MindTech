@@ -11,6 +11,7 @@ import android.app.PendingIntent
 import android.app.AlarmManager
 import android.media.MediaPlayer
 import org.jetbrains.anko.doAsync
+import org.jetbrains.anko.uiThread
 
 
 class AlarmReceiver : BroadcastReceiver() {
@@ -37,19 +38,21 @@ class AlarmReceiver : BroadcastReceiver() {
                 }
             }
 
-            // cancel the current alarm
-            alarmData.timeInMillis = -1
-            val amg = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-            val pendingIntent = PendingIntent.getBroadcast(context, 0, intent, PendingIntent.FLAG_CANCEL_CURRENT)
-            amg.cancel(pendingIntent)
+            uiThread {
+                // notify MainActivity that the alarm was activated
+                ObservableObject.getInstance().updateValue(intent)
 
-            // save the changes
-            val editor = sp.edit()
-            editor.putString("currentAlarm", alarmData.toJson())
-            editor.apply()
+                // cancel the current alarm
+                alarmData.timeInMillis = -1
+                val amg = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+                val pendingIntent = PendingIntent.getBroadcast(context, 0, intent, PendingIntent.FLAG_CANCEL_CURRENT)
+                amg.cancel(pendingIntent)
 
-            // notify MainActivity that the alarm was activated
-            ObservableObject.getInstance().updateValue(intent)
+                // save the changes
+                val editor = sp.edit()
+                editor.putString("currentAlarm", alarmData.toJson())
+                editor.apply()
+            }
         }
     }
 
@@ -59,6 +62,7 @@ class AlarmReceiver : BroadcastReceiver() {
         val mp = ObservableObject.getInstance().mp
         if (mp!= null) {
             try {
+                mp.reset()
                 mp.setDataSource(audioPath)
                 mp.prepare()
                 mp.start()

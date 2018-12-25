@@ -117,8 +117,8 @@ class MainActivity : AppCompatActivity(), Observer {
 
             override fun getView(position: Int, convertView: View?, parent: ViewGroup?): View {
                 val newView = TextView(context)
-                newView.setPadding(50, 20, 50, 20)
-                newView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 24f)
+                newView.setPadding(50, 25, 50, 25)
+                newView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
                 newView.text = getItem(position)
                 newView.setTextColor(ContextCompat.getColor(context, if (position == selectedItemPosition) R.color.alarmOnTextColor else R.color.defaultTextColor))
                 if (currentAlarmActive && position == selectedItemPosition)
@@ -337,22 +337,6 @@ class MainActivity : AppCompatActivity(), Observer {
     // Called by the observer when the alarm is received
     override fun update(p0: Observable?, p1: Any?) {
         toggleAlarm(false, false)
-    }
-
-    // starts the download progress
-    private fun startProgress() {
-        val prog = progressDialog(message = "אנא המתן, התהליך יכול לקחת זמן עם קבצים גדולים…", title = "מעלה קובץ")
-        prog.setCancelable(false)
-        prog.show()
-    }
-
-    // called whenever an there is progress on the file download
-    private fun onPorgress() {
-
-    }
-
-    // called after the chosen file was downloaded
-    private fun finishProgress() {
     }
 }
 

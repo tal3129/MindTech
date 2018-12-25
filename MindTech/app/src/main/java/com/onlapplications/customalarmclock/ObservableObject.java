@@ -25,12 +25,6 @@ public class ObservableObject extends Observable {
         }
     }
 
-    public MediaPlayer getMpOrNewOne() {
-        if (mp == null)
-            return new MediaPlayer();
-        return mp;
-    }
-
     public void resetMp(){
         if (mp != null) {
             mp.stop();
